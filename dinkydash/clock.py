@@ -11,7 +11,7 @@ the setting take effect on the next redraw rather than on the next calendar
 fetch, and it keeps one shape in the store for both modes.
 """
 
-from datetime import datetime, time
+from datetime import date, datetime, time
 
 # The two ways a clock is read. `24h` stays the default: it is the house style,
 # and it is what every dashboard already hanging on a wall shows.
@@ -42,6 +42,39 @@ def format_time(moment, clock=DEFAULT_CLOCK):
         return f"{moment.hour % 12 or 12}:{moment.minute:02d} " \
                f"{'am' if moment.hour < 12 else 'pm'}"
     return f"{moment.hour:02d}:{moment.minute:02d}"
+
+
+def format_time_range(start, end, clock=DEFAULT_CLOCK):
+    """A start and end on the same day, written as one column string."""
+    start_text = format_time(start, clock)
+    end_text = format_time(end, clock)
+    if not start_text:
+        return end_text
+    if not end_text or start_text == end_text:
+        return start_text
+    if clock == "12h":
+        start_moment = _time_of(start)
+        end_moment = _time_of(end)
+        if start_moment and end_moment:
+            same_half = (start_moment.hour < 12) == (end_moment.hour < 12)
+            if same_half:
+                suffix = " am" if end_moment.hour < 12 else " pm"
+                start_bit = f"{start_moment.hour % 12 or 12}:{start_moment.minute:02d}"
+                end_bit = f"{end_moment.hour % 12 or 12}:{end_moment.minute:02d}"
+                return f"{start_bit}–{end_bit}{suffix}"
+    return f"{start_text}–{end_text}"
+
+
+def format_all_day_through(last_day):
+    """How many days an all-day block runs, for the time column."""
+    if last_day is None:
+        return None
+    if isinstance(last_day, str):
+        try:
+            last_day = date.fromisoformat(last_day)
+        except ValueError:
+            return None
+    return last_day.strftime("%-d %b")
 
 
 def _time_of(value):

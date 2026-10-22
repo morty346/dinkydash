@@ -1,8 +1,8 @@
 {% macro event_row(event) %}
 <div class="event">
-    <div class="event-time{{ ' all-day' if event.all_day }}">
+    <div class="event-time{{ ' all-day' if event.all_day }}{{ ' range' if event.time and '–' in event.time }}">
         {%- if event.all_day -%}
-            All day
+            All day{% if event.all_day_through %}<span class="event-through">&nbsp;&ndash;&nbsp;{{ event.all_day_through }}</span>{% endif %}
         {%- elif event.time and event.time.endswith(' am') -%}
             {{ event.time[:-3] }}<span class="meridiem">am</span>
         {%- elif event.time and event.time.endswith(' pm') -%}
@@ -11,9 +11,16 @@
             {{ event.time }}
         {%- endif -%}
     </div>
-    <div class="event-title">
-        {{ event.title }}
-        {% if event.location %}<span class="event-where">&mdash; {{ event.location }}</span>{% endif %}
+    <div class="event-body">
+        <div class="event-title">
+            {{ event.title }}
+            {% if event.place %}<span class="event-where">&mdash; {{ event.place }}</span>{% elif event.online %}<span class="event-where event-online"><svg class="event-online-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"></rect><path d="M16 10l6-4v12l-6-4"></path></svg>Online</span>{% endif %}
+        </div>
+        {% if event.description_lines %}
+        <div class="event-notes">
+            {% for line in event.description_lines %}<div class="event-note-line">{{ line }}</div>{% endfor %}
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endmacro -%}
@@ -88,7 +95,7 @@
            under the digits, which is the gap beside the title. Short hours
            sit on the same right edge, so "8:00" does not leave a hole in
            front of the title. Tomorrow scales the token with its type. */
-        [data-clock="12h"] { --time-column: 7.35rem; }
+        [data-clock="12h"] { --time-column: 8.15rem; }
         [data-clock="12h"] .event-time { text-align: right; }
 
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -237,8 +244,9 @@
             min-height: 0;
         }
         .events > * + * { margin-top: 0.65rem; }
-        .event { display: flex; align-items: baseline; min-width: 0; }
+        .event { display: flex; align-items: flex-start; min-width: 0; }
         .event > * + * { margin-left: 0.9rem; }
+        .event-body { min-width: 0; flex: 1; }
         .event-time {
             font-size: 1.9rem;
             font-weight: 800;
@@ -252,14 +260,29 @@
            so the column does not have to be as wide as the suffix at full size. */
         .event-time .meridiem { font-size: 0.65em; margin-left: 0.2em; }
         .event-time.all-day { font-size: 1.25rem; line-height: 1.25; }
+        .event-time.range { font-size: 1.48rem; }
+        .event-through { font-weight: 700; color: var(--text-mid); }
         .event-title {
             font-size: 1.9rem;
             font-weight: 700;
             line-height: 1.22;
             min-width: 0;
-            overflow-wrap: break-word;
+            overflow-wrap: anywhere;
         }
         .event-where { color: var(--text-muted); font-weight: 600; }
+        .event-online { display: inline-flex; align-items: center; white-space: nowrap; }
+        .event-online-icon {
+            width: 1.05em; height: 1.05em; flex-shrink: 0;
+            margin-right: 0.35em;
+        }
+        .event-notes {
+            margin-top: 0.2rem;
+            font-size: 0.72em;
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--text-muted);
+        }
+        .event-note-line { overflow-wrap: anywhere; }
         /* A wrapped address is several lines. On a short panel it goes even
            when the rest of the day fits; the script hides every address, and
            then tomorrow, only once the readable floor still overflows. */
@@ -267,6 +290,7 @@
             .tomorrow .event-where { display: none; }
         }
         .tight .event-where { display: none; }
+        .tight .event-notes { display: none; }
         .drop-tomorrow .tomorrow { display: none; }
         .event.shed { display: none; }
         .more {
@@ -293,7 +317,9 @@
             width: calc(var(--time-column) * 1.28 / 1.9);
         }
         .tomorrow .event-time.all-day { font-size: 0.95rem; }
+        .tomorrow .event-time.range { font-size: 1.05rem; }
         .tomorrow .event-title { font-size: 1.28rem; color: var(--text-mid); }
+        .tomorrow .event-notes { font-size: 0.72em; color: var(--text-faint); }
 
         .empty {
             background: var(--box);

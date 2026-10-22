@@ -14,7 +14,8 @@ import pytest
 
 from dinkydash import config as config_module
 from dinkydash.board import build_view
-from dinkydash.clock import DEFAULT_CLOCK, clock_of, format_time
+from dinkydash.clock import (DEFAULT_CLOCK, clock_of, format_time,
+                             format_time_range)
 from dinkydash.prompt import build_user_prompt
 from dinkydash.store import FileStore
 from tests.conftest import client_for
@@ -82,6 +83,12 @@ class TestFormatTime:
 
     def test_the_default_is_twenty_four_hour(self):
         assert format_time(f"{TODAY}T15:45:00+02:00") == "15:45"
+
+    def test_range_on_one_day(self):
+        start = f"{TODAY}T15:30:00-05:00"
+        end = f"{TODAY}T17:00:00-05:00"
+        assert format_time_range(start, end, "24h") == "15:30–17:00"
+        assert format_time_range(start, end, "12h") == "3:30–5:00 pm"
 
     def test_it_takes_a_datetime_a_time_or_a_string(self):
         assert format_time(datetime(2026, 9, 17, 15, 45), "12h") == "3:45 pm"

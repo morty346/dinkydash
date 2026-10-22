@@ -10,7 +10,7 @@ from datetime import date, datetime, timezone
 
 import pytest
 
-from dinkydash.board import build_view, computed_headline
+from dinkydash.board import as_shown, build_view, computed_headline
 from dinkydash.config import tzinfo_for
 
 CONFIG = {
@@ -60,6 +60,37 @@ class TestComputedHeadline:
     def test_all_day_only_has_no_start_time(self):
         events = [event("2026-09-03", None, "Inset day", all_day=True)]
         assert computed_headline(events) == "1 thing on today."
+
+
+class TestEventPresentation:
+    def test_shows_end_time_and_notes(self):
+        raw = {
+            "title": "Brooklyn - HSM Rehearsal",
+            "date": "2026-09-03", "time": "15:30", "all_day": False,
+            "start": "2026-09-03T15:30:00-05:00",
+            "end": "2026-09-03T17:00:00-05:00",
+            "description": "Section C — pages 69-102\\nSpot work until 6:00",
+            "location": None, "calendar": "Family",
+        }
+        shown = as_shown([raw], "12h")[0]
+        assert shown["time"] == "3:30–5:00 pm"
+        assert "Section C" in shown["description_lines"][0]
+
+    def test_hides_zoom_location_and_shows_online(self):
+        raw = event("2026-09-03", "12:00", "Hauling Smart / Curbside Updates")
+        raw["start"] = "2026-09-03T12:00:00-05:00"
+        raw["location"] = "https://us06web.zoom.us/j/999?pwd=secret"
+        shown = as_shown([raw], "12h")[0]
+        assert shown["place"] is None
+        assert shown["online"] is True
+
+    def test_keeps_physical_location_in_the_view(self):
+        data = payload("2026-09-03", [
+            {**event("2026-09-03", "14:00", "Concert"),
+             "location": "Zumbrota-Mazeppa High School"},
+        ])
+        view = build_view(CONFIG, data, TODAY)
+        assert view["events"][0]["place"] == "Zumbrota-Mazeppa High School"
 
 
 class TestFreshBoard:

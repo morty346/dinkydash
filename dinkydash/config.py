@@ -39,6 +39,8 @@ DEFAULTS = {
     # Read only by `generate.py --tick`. A plain run still does both at once.
     "refresh_minutes": 60,
     "brief_time": "06:00",
+    # When false, event DESCRIPTION fields are not shown on the dashboard.
+    "show_event_descriptions": True,
     # Storage-layer keys, read only by dinkydash.store.FileStore. They say
     # where a self-hoster's generated files go and mean nothing in cloud mode,
     # where the same two things are rows.

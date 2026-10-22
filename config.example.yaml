@@ -22,6 +22,9 @@ location: "Berlin, Germany"
 # light or dark.
 theme: light
 
+# Show calendar DESCRIPTION text under each event on the dashboard.
+show_event_descriptions: true
+
 # One entry per iCal feed; they are merged into a single agenda.
 # Google, Apple iCloud and Outlook all publish an iCal link:
 #   Google   → Settings and sharing → Integrate calendar → Secret address in iCal format

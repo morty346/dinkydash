@@ -319,6 +319,7 @@ class TestTheSource:
         css = BOARD.read_text()
         assert "font-size: max(0.82rem, 12px);" in css
         assert ".tight .event-where { display: none; }" in css
+        assert ".tight .event-notes { display: none; }" in css
         assert ".drop-tomorrow .tomorrow { display: none; }" in css
         assert "@media (max-height: 520px)" in css
         assert ".tomorrow .event-where { display: none; }" in css
@@ -412,7 +413,7 @@ class TestTheTwelveHourColumn:
         data = open_at(browser, origin, "twelve", 1024, 744, 2)
         assert data["over"] == []
         # Under the full-size suffix column, and the widest time still fits.
-        assert data["timeColumnRem"] < 7.4
+        assert data["timeColumnRem"] < 8.3
         assert data["timeOverflow"] <= 1
         assert data["tomorrowColumnRem"] < data["timeColumnRem"] - 0.5
         assert data["meridiemSmaller"] is True
