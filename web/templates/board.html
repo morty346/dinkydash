@@ -14,15 +14,7 @@
         {%- endif -%}
         </div>
         {%- if event.time_end -%}
-        <div class="event-time-end">
-        {%- if event.time_end.endswith(' am') -%}
-            {{ event.time_end[:-3] }}<span class="meridiem">am</span>
-        {%- elif event.time_end.endswith(' pm') -%}
-            {{ event.time_end[:-3] }}<span class="meridiem">pm</span>
-        {%- else -%}
-            {{ event.time_end }}
-        {%- endif -%}
-        </div>
+        <div class="event-time-end">{{ event.time_end }}</div>
         {%- endif -%}
         {%- endif -%}
     </div>
@@ -268,9 +260,14 @@
             min-height: 0;
         }
         .events > * + * { margin-top: 0.65rem; }
-        .event { display: flex; align-items: flex-start; min-width: 0; }
-        .event > * + * { margin-left: 0.9rem; }
-        .event-body { min-width: 0; flex: 1; }
+        .event {
+            display: grid;
+            grid-template-columns: var(--time-column) minmax(0, 1fr);
+            column-gap: 0.9rem;
+            align-items: start;
+            min-width: 0;
+        }
+        .event-body { min-width: 0; }
         .event-time {
             width: var(--time-column);
             flex-shrink: 0;
