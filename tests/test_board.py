@@ -73,7 +73,8 @@ class TestEventPresentation:
             "location": None, "calendar": "Family",
         }
         shown = as_shown([raw], "12h")[0]
-        assert shown["time"] == "3:30–5:00 pm"
+        assert shown["time"] == "3:30 pm"
+        assert shown["time_end"] == "5:00 pm"
         assert "Section C" in shown["description_lines"][0]
 
     def test_hides_zoom_location_and_shows_online(self):

@@ -413,7 +413,7 @@ class TestTheTwelveHourColumn:
         data = open_at(browser, origin, "twelve", 1024, 744, 2)
         assert data["over"] == []
         # Under the full-size suffix column, and the widest time still fits.
-        assert data["timeColumnRem"] < 8.3
+        assert data["timeColumnRem"] < 7.4
         assert data["timeOverflow"] <= 1
         assert data["tomorrowColumnRem"] < data["timeColumnRem"] - 0.5
         assert data["meridiemSmaller"] is True

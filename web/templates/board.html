@@ -1,14 +1,29 @@
 {% macro event_row(event) %}
 <div class="event">
-    <div class="event-time{{ ' all-day' if event.all_day }}{{ ' range' if event.time and '–' in event.time }}">
+    <div class="event-time{{ ' all-day' if event.all_day }}">
         {%- if event.all_day -%}
             All day{% if event.all_day_through %}<span class="event-through">&nbsp;&ndash;&nbsp;{{ event.all_day_through }}</span>{% endif %}
-        {%- elif event.time and event.time.endswith(' am') -%}
+        {%- else -%}
+        <div class="event-time-start">
+        {%- if event.time and event.time.endswith(' am') -%}
             {{ event.time[:-3] }}<span class="meridiem">am</span>
         {%- elif event.time and event.time.endswith(' pm') -%}
             {{ event.time[:-3] }}<span class="meridiem">pm</span>
         {%- else -%}
             {{ event.time }}
+        {%- endif -%}
+        </div>
+        {%- if event.time_end -%}
+        <div class="event-time-end">
+        {%- if event.time_end.endswith(' am') -%}
+            {{ event.time_end[:-3] }}<span class="meridiem">am</span>
+        {%- elif event.time_end.endswith(' pm') -%}
+            {{ event.time_end[:-3] }}<span class="meridiem">pm</span>
+        {%- else -%}
+            {{ event.time_end }}
+        {%- endif -%}
+        </div>
+        {%- endif -%}
         {%- endif -%}
     </div>
     <div class="event-body">
@@ -95,8 +110,8 @@
            under the digits, which is the gap beside the title. Short hours
            sit on the same right edge, so "8:00" does not leave a hole in
            front of the title. Tomorrow scales the token with its type. */
-        [data-clock="12h"] { --time-column: 8.15rem; }
-        [data-clock="12h"] .event-time { text-align: right; }
+        [data-clock="12h"] { --time-column: 7.35rem; }
+        [data-clock="12h"] .event-time { align-items: flex-end; text-align: right; }
 
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -248,19 +263,33 @@
         .event > * + * { margin-left: 0.9rem; }
         .event-body { min-width: 0; flex: 1; }
         .event-time {
-            font-size: 1.9rem;
-            font-weight: 800;
-            line-height: 1.2;
-            color: var(--accent);
             width: var(--time-column);
             flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.15;
+        }
+        .event-time-start {
+            font-size: 1.9rem;
+            font-weight: 800;
+            color: var(--accent);
+            white-space: nowrap;
+        }
+        .event-time-end {
+            font-size: 0.68em;
+            font-weight: 700;
+            color: var(--text-muted);
             white-space: nowrap;
         }
         /* "am" / "pm" read as part of the time, a step down from the digits,
            so the column does not have to be as wide as the suffix at full size. */
         .event-time .meridiem { font-size: 0.65em; margin-left: 0.2em; }
-        .event-time.all-day { font-size: 1.25rem; line-height: 1.25; }
-        .event-time.range { font-size: 1.48rem; }
+        .event-time.all-day {
+            font-size: 1.25rem;
+            line-height: 1.25;
+            font-weight: 800;
+            color: var(--accent);
+        }
         .event-through { font-weight: 700; color: var(--text-mid); }
         .event-title {
             font-size: 1.9rem;
@@ -270,10 +299,18 @@
             overflow-wrap: anywhere;
         }
         .event-where { color: var(--text-muted); font-weight: 600; }
-        .event-online { display: inline-flex; align-items: center; white-space: nowrap; }
+        .event-online {
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            font-size: 0.58em;
+            font-weight: 700;
+            color: var(--text-faint);
+            vertical-align: middle;
+        }
         .event-online-icon {
-            width: 1.05em; height: 1.05em; flex-shrink: 0;
-            margin-right: 0.35em;
+            width: 0.95em; height: 0.95em; flex-shrink: 0;
+            margin-right: 0.3em;
         }
         .event-notes {
             margin-top: 0.2rem;
@@ -312,12 +349,17 @@
         .tomorrow .events { flex: 0; justify-content: flex-start; }
         .tomorrow .events > * + * { margin-top: 0.4rem; }
         .tomorrow .event-time {
-            font-size: 1.28rem;
-            color: var(--text-muted);
             width: calc(var(--time-column) * 1.28 / 1.9);
         }
-        .tomorrow .event-time.all-day { font-size: 0.95rem; }
-        .tomorrow .event-time.range { font-size: 1.05rem; }
+        .tomorrow .event-time-start {
+            font-size: 1.28rem;
+            color: var(--text-muted);
+        }
+        .tomorrow .event-time-end { color: var(--text-faint); }
+        .tomorrow .event-time.all-day {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
         .tomorrow .event-title { font-size: 1.28rem; color: var(--text-mid); }
         .tomorrow .event-notes { font-size: 0.72em; color: var(--text-faint); }
 

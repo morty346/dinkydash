@@ -8,8 +8,8 @@ import re
 from html import unescape
 
 # Enough for a rehearsal call sheet; the fit script can still drop rows.
-MAX_DESCRIPTION_CHARS = 280
-MAX_DESCRIPTION_LINES = 4
+MAX_DESCRIPTION_CHARS = 200
+MAX_DESCRIPTION_LINES = 2
 
 _URL = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
 _VIDEO_HOST = re.compile(
@@ -27,22 +27,26 @@ _VIDEO_HOST = re.compile(
     r")(?:/|$|\?)",
     re.IGNORECASE,
 )
-_MEETING_LINE = re.compile(
-    r"^(?:"
-    r".*zoom\s+meeting.*|"
-    r".*join\s+(?:zoom|google\s+meet|microsoft\s+teams|teams)\b.*|"
-    r".*\bmeet\.google\.com/\S+.*|"
-    r".*\bteams\.microsoft\.com/\S+.*|"
-    r".*https?://\S*zoom\.us/\S+.*|"
-    r".*passcode:.*|"
-    r".*meeting\s+id:.*|"
-    r".*dial(?:-|\s)?in.*|"
-    r".*one\s+tap\s+mobile.*|"
-    r".*────────.*|"
-    r".*──────────.*"
-    r")$",
+_INVITE_OPENER = re.compile(
+    r"\bis inviting you to\b.*\b(?:zoom|teams|google meet)\b|"
+    r"^Microsoft Teams meeting\b|"
+    r"^Join\s+(?:Zoom\s+Meeting|Microsoft Teams|Google Meet)\b",
     re.IGNORECASE,
 )
+_LABEL_LINE = re.compile(
+    r"^(?:Join and take notes|Meeting chat link|Click here to join|"
+    r"Join instructions|Join by SIP|One tap mobile|Dial by your location|"
+    r"Google Meet joining info|Join on your computer.*)$",
+    re.IGNORECASE,
+)
+_META_LINE = re.compile(
+    r"^(?:Meeting ID|Passcode|Password|PIN|Conference ID|Video call link)"
+    r"\s*[:：]?",
+    re.IGNORECASE,
+)
+_PHONE_DIAL = re.compile(r"^\+[\d\s(),*#-]{12,}\s*(?:US|UK|Canada)?", re.IGNORECASE)
+_SIP_LINE = re.compile(r"^•\s*\S+@zoomcrc\.com", re.IGNORECASE)
+_SEPARATOR = re.compile(r"^[-─—]{3,}\s*$")
 
 
 def _normalise_newlines(text):
@@ -93,6 +97,55 @@ def _strip_html(text):
     return unescape(without)
 
 
+def _line_opens_conference(line):
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if _INVITE_OPENER.search(stripped):
+        return True
+    if _VIDEO_HOST.search(stripped) and _URL.search(stripped):
+        return True
+    if stripped.lower().startswith("https://meet.google.com/"):
+        return True
+    return False
+
+
+def _is_boilerplate_line(line):
+    stripped = line.strip()
+    if not stripped:
+        return True
+    if _URL.search(stripped):
+        return True
+    if _line_opens_conference(stripped):
+        return True
+    if _LABEL_LINE.match(stripped):
+        return True
+    if _META_LINE.match(stripped):
+        return True
+    if _PHONE_DIAL.match(stripped):
+        return True
+    if _SIP_LINE.match(stripped):
+        return True
+    if _SEPARATOR.match(stripped):
+        return True
+    if ",," in stripped and "#" in stripped and re.search(r"\d{3}", stripped):
+        return True
+    return False
+
+
+def _entire_body_is_conference(text):
+    if not (_VIDEO_HOST.search(text) or re.search(r"meet\.google\.com", text, re.I)):
+        return False
+    if re.search(
+        r"Join Zoom|Meeting ID|is inviting you|teams\.microsoft|"
+        r"meet\.google\.com",
+        text,
+        re.I,
+    ):
+        return True
+    return False
+
+
 def clean_description(raw):
     """A DESCRIPTION worth showing, or None if nothing useful remains."""
     if raw is None:
@@ -106,25 +159,21 @@ def clean_description(raw):
     if not text:
         return None
 
-    lines = []
-    for line in text.split("\n"):
-        stripped = line.strip()
-        if not stripped:
-            continue
-        if _MEETING_LINE.match(stripped):
-            continue
-        without_urls = _URL.sub("", stripped).strip(" \t-–—|,")
-        if not without_urls:
-            continue
-        lines.append(stripped)
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    cut = len(lines)
+    for index, line in enumerate(lines):
+        if _line_opens_conference(line):
+            cut = index
+            break
 
-    if not lines:
-        return None
+    prefix = lines[:cut]
+    if cut == len(lines) and _entire_body_is_conference(text):
+        prefix = []
 
-    joined = "\n".join(lines)
-    if _URL.sub("", joined).strip(" \t-–—|,") == "":
+    kept = [line for line in prefix if not _is_boilerplate_line(line)]
+    if not kept:
         return None
-    return joined
+    return "\n".join(kept)
 
 
 def description_lines(raw, *, enabled=True):

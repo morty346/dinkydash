@@ -17,8 +17,7 @@ and nothing is wrong.
 from datetime import date, datetime, timedelta
 
 from .calendars import events_on
-from .clock import (clock_of, format_all_day_through, format_time,
-                    format_time_range)
+from .clock import clock_of, format_all_day_through, format_time
 from .config import is_set_up
 from .event_text import description_lines, location_for_display
 from .context import build_countdowns, compute_chore_assignments
@@ -68,10 +67,12 @@ def as_shown(events, clock, config=None):
         else:
             start = event.get("start") or event.get("time")
             end = event.get("end")
-            if end:
-                copy["time"] = format_time_range(start, end, clock) or event.get("time")
-            else:
-                copy["time"] = format_time(start, clock) or event.get("time")
+            start_written = format_time(start, clock) or event.get("time")
+            copy["time"] = start_written
+            end_written = format_time(end, clock) if end else None
+            copy["time_end"] = (
+                end_written if end_written and end_written != start_written else None
+            )
         shown.append(copy)
     return shown
 
