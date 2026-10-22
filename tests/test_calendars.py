@@ -78,6 +78,37 @@ class TestParsing:
         events = parse_feed(feed, date(2026, 9, 3), date(2026, 9, 4), BERLIN, label="Sam's")
         assert events[0]["calendar"] == "Sam's"
 
+    def test_reads_dtend_and_description(self):
+        body = (
+            "BEGIN:VEVENT\r\nUID:1\r\n"
+            "DTSTART;TZID=America/Chicago:20261022T153000\r\n"
+            "DTEND:20261022T220000Z\r\n"
+            "SUMMARY:Brooklyn - HSM Rehearsal\r\n"
+            "DESCRIPTION:Section C — pages 69-102\\nSpot work until 6:00\r\n"
+            "END:VEVENT\r\n"
+        )
+        chicago = ZoneInfo("America/Chicago")
+        events = parse_feed(ical(body), date(2026, 10, 22), date(2026, 10, 23), chicago)
+        event = events[0]
+        assert event["title"] == "Brooklyn - HSM Rehearsal"
+        assert event["time"] == "15:30"
+        assert event["end"].startswith("2026-10-22T17:00:00")
+        assert "Section C" in event["description"]
+        assert "Spot work" in event["description"]
+
+    def test_reads_location_unchanged_in_the_payload(self):
+        zoom = "https://us06web.zoom.us/j/123?pwd=x"
+        feed = ical(timed("1", "20260903T120000", "Call", location=zoom))
+        events = parse_feed(feed, date(2026, 9, 3), date(2026, 9, 4), BERLIN)
+        assert events[0]["location"] == zoom
+
+    def test_multi_day_all_day_sets_last_day(self):
+        body = all_day("1", "20260903", "Trip").replace(
+            "END:VEVENT", "DTEND;VALUE=DATE:20260906\r\nEND:VEVENT")
+        events = parse_feed(ical(body), date(2026, 9, 3), date(2026, 9, 10), BERLIN)
+        assert events[0]["last_day"] == "2026-09-05"
+        assert events[0]["end"] is None
+
 
 class TestOrdering:
     def test_sorts_chronologically_not_alphabetically(self):

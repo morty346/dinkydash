@@ -4,6 +4,7 @@ The dashboard shows one headline a day, so that is all we ask for.
 """
 
 from .clock import DEFAULT_CLOCK, clock_of, format_time
+from .event_text import location_for_display
 
 RESPONSE_SCHEMA = {
     "type": "object",
@@ -39,7 +40,13 @@ def _format_event(event, clock=DEFAULT_CLOCK):
     # the same complaint one line down from the agenda.
     when = "All day" if event["all_day"] else format_time(
         event.get("start") or event.get("time"), clock)
-    where = f" ({event['location']})" if event.get("location") else ""
+    place, online = location_for_display(event.get("location"))
+    if place:
+        where = f" ({place})"
+    elif online:
+        where = " (Online)"
+    else:
+        where = ""
     return f"- {when}: {event['title']}{where}"
 
 

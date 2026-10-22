@@ -245,6 +245,39 @@ def _may_touch(block, lo, hi):
     return first <= hi and max(first, last) >= lo
 
 
+def _ends(component, starts_at, all_day, tzinfo):
+    """When an event stops, in the same shapes `start` uses."""
+    dtend = component.get("DTEND")
+    if dtend is None:
+        duration = component.get("DURATION")
+        if duration is not None and duration.dt is not None:
+            ends_at = starts_at + duration.dt
+            if all_day:
+                return None, (ends_at.date() - timedelta(days=1)).isoformat()
+            return ends_at.isoformat(), None
+        return None, None
+    raw_end = dtend.dt
+    if all_day:
+        if isinstance(raw_end, datetime):
+            raw_end = raw_end.date()
+        last = raw_end - timedelta(days=1)
+        if last < starts_at.date():
+            return None, None
+        return None, last.isoformat() if last > starts_at.date() else None
+    ends_at = _localise(raw_end, tzinfo)
+    if ends_at <= starts_at:
+        return None, None
+    return ends_at.isoformat(), None
+
+
+def _description(component):
+    value = component.get("DESCRIPTION")
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
 def _events(occurrences, tzinfo, label, shared_with):
     wanted = set(addresses(shared_with))
     events = []
@@ -257,6 +290,7 @@ def _events(occurrences, tzinfo, label, shared_with):
         raw = dtstart.dt
         all_day = not isinstance(raw, datetime)
         starts_at = _localise(raw, tzinfo)
+        end, last_day = _ends(component, starts_at, all_day, tzinfo)
 
         events.append({
             "title": str(component.get("SUMMARY", "Untitled")).strip() or "Untitled",
@@ -264,6 +298,9 @@ def _events(occurrences, tzinfo, label, shared_with):
             "date": starts_at.date().isoformat(),
             "time": None if all_day else starts_at.strftime("%H:%M"),
             "all_day": all_day,
+            "end": end,
+            "last_day": last_day,
+            "description": _description(component),
             "location": str(component.get("LOCATION", "")).strip() or None,
             "calendar": label,
         })

@@ -319,6 +319,7 @@ class TestTheSource:
         css = BOARD.read_text()
         assert "font-size: max(0.82rem, 12px);" in css
         assert ".tight .event-where { display: none; }" in css
+        assert ".tight .event-notes { display: none; }" in css
         assert ".drop-tomorrow .tomorrow { display: none; }" in css
         assert "@media (max-height: 520px)" in css
         assert ".tomorrow .event-where { display: none; }" in css

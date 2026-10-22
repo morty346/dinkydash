@@ -17,8 +17,9 @@ and nothing is wrong.
 from datetime import date, datetime, timedelta
 
 from .calendars import events_on
-from .clock import clock_of, format_time
+from .clock import clock_of, format_all_day_through, format_time
 from .config import is_set_up
+from .event_text import description_lines, location_for_display
 from .context import build_countdowns, compute_chore_assignments
 from .schedule import brief_due, refresh_interval
 
@@ -41,7 +42,7 @@ MAX_RELOAD_SECONDS = 300
 WAITING_RELOAD_SECONDS = 60
 
 
-def as_shown(events, clock):
+def as_shown(events, clock, config=None):
     """The same events, each time written the way this family reads it.
 
     Stored events carry `%H:%M` with the full ISO `start` beside it, so the
@@ -50,13 +51,29 @@ def as_shown(events, clock):
     the next calendar refresh. Copies rather than mutates: the payload it reads
     from belongs to the caller.
     """
+    show_notes = True
+    if config is not None and config.get("show_event_descriptions") is False:
+        show_notes = False
     shown = []
     for event in events:
+        copy = dict(event)
+        place, online = location_for_display(event.get("location"))
+        copy["place"] = place
+        copy["online"] = online
+        copy["description_lines"] = description_lines(
+            event.get("description"), enabled=show_notes)
         if event.get("all_day"):
-            shown.append(event)
-            continue
-        written = format_time(event.get("start") or event.get("time"), clock)
-        shown.append({**event, "time": written or event.get("time")})
+            copy["all_day_through"] = format_all_day_through(event.get("last_day"))
+        else:
+            start = event.get("start") or event.get("time")
+            end = event.get("end")
+            start_written = format_time(start, clock) or event.get("time")
+            copy["time"] = start_written
+            end_written = format_time(end, clock) if end else None
+            copy["time_end"] = (
+                end_written if end_written and end_written != start_written else None
+            )
+        shown.append(copy)
     return shown
 
 
@@ -167,14 +184,14 @@ def build_view(config, payload, today, now=None):
     clock = view["clock"]
     # Rewritten before anything reads a time off them, so the computed headline
     # below is on the family's clock too.
-    events = as_shown(events_on(fetched, today)[:MAX_EVENTS], clock)
+    events = as_shown(events_on(fetched, today)[:MAX_EVENTS], clock, config)
     view["events"] = events
     # The fetch reaches 14 days ahead, so tomorrow is in the payload even when
     # it is a day old. Slots are what today did not use, which is why a busy
     # day silently drops tomorrow rather than overflowing the panel.
     slots = min(MAX_TOMORROW, MAX_EVENTS - len(events))
     view["tomorrow"] = as_shown(
-        events_on(fetched, today + timedelta(days=1))[:slots], clock) if slots else []
+        events_on(fetched, today + timedelta(days=1))[:slots], clock, config) if slots else []
 
     stale = payload.get("generated_for_date") != today.isoformat()
     view["stale"] = stale
