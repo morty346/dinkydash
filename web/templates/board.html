@@ -112,6 +112,15 @@
            front of the title. Tomorrow scales the token with its type. */
         [data-clock="12h"] { --time-column: 7.35rem; }
         [data-clock="12h"] .event-time { align-items: flex-end; text-align: right; }
+        /* Digits and meridiem stack so "12:00 pm" fits the column without
+           painting over the title beside it. */
+        [data-clock="12h"] .event-time-start,
+        [data-clock="12h"] .event-time-end {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        [data-clock="12h"] .event-time .meridiem { margin-left: 0; line-height: 1; }
 
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
